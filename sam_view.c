@@ -64,6 +64,7 @@ typedef struct samview_settings {
     int flag_alloff;
     int min_qlen;
     int remove_B;
+    char* index_file;
     uint32_t subsam_seed;
     double subsam_frac;
     char* library;
@@ -267,6 +268,7 @@ int main_samview(int argc, char *argv[])
         .subsam_frac = -1.,
         .library = NULL,
         .bed = NULL,
+        .index_file = NULL
     };
 
     static const struct option lopts[] = {
@@ -278,7 +280,7 @@ int main_samview(int argc, char *argv[])
     strcpy(out_mode, "w");
     strcpy(out_un_mode, "w");
     while ((c = getopt_long(argc, argv,
-                            "SbBcCt:h1Ho:O:q:f:F:G:ul:r:?T:R:L:s:@:m:x:U:",
+                            "SbBcCt:h1Ho:O:q:f:F:G:ul:r:?T:R:L:s:@:m:x:U:i:",
                             lopts, NULL)) >= 0) {
         switch (c) {
         case 's':
@@ -290,6 +292,8 @@ int main_samview(int argc, char *argv[])
             }
             settings.subsam_frac = strtod(q, &q);
             break;
+        case 'i':
+          settings.index_file = strdup(optarg); break;
         case 'm': settings.min_qlen = atoi(optarg); break;
         case 'c': is_count = 1; break;
         case 'S': break;
@@ -484,7 +488,12 @@ int main_samview(int argc, char *argv[])
     } else { // retrieve alignments in specified regions
         int i;
         bam1_t *b;
-        hts_idx_t *idx = sam_index_load(in, fn_in); // load index
+        hts_idx_t *idx;
+        if (settings.index_file != NULL) {
+          idx = sam_index_load2(in, fn_in, settings.index_file);
+        } else {
+          idx = sam_index_load(in, fn_in); // load index
+        }
         if (idx == 0) { // index is unavailable
             fprintf(stderr, "[main_samview] random alignment retrieval only works for indexed BAM or CRAM files.\n");
             ret = 1;
@@ -589,6 +598,8 @@ static int usage(FILE *fp, int exit_status, int is_long_help)
 "  -G INT   only EXCLUDE reads with all  of the FLAGs in INT present [0]\n"       // !(F&x == x)
 "  -s FLOAT subsample reads (given INT.FRAC option value, 0.FRAC is the\n"
 "           fraction of templates/read pairs to keep; INT part sets seed)\n"
+"  -i FILE  Index filename to use for range queries [auto-detected]\n"
+"  -n       No SSL certificate checks\n"
 // read processing
 "  -x STR   read tag to strip (repeatable) [null]\n"
 "  -B       collapse the backward CIGAR operation\n"
