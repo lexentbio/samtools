@@ -506,10 +506,11 @@ int main_samview(int argc, char *argv[])
             if (iter == NULL) { // region invalid or reference name not found
                 int beg, end;
                 if (hts_parse_reg(argv[i], &beg, &end))
-                    fprintf(stderr, "[main_samview] region \"%s\" specifies an unknown reference name. Continue anyway.\n", argv[i]);
+                    fprintf(stderr, "[main_samview] region \"%s\" specifies an unknown reference name.\n", argv[i]);
                 else
-                    fprintf(stderr, "[main_samview] region \"%s\" could not be parsed. Continue anyway.\n", argv[i]);
-                continue;
+                    fprintf(stderr, "[main_samview] region \"%s\" could not be parsed.\n", argv[i]);
+                ret = EXIT_FAILURE;
+                break;
             }
             // fetch alignments
             while ((result = sam_itr_next(in, iter, b)) >= 0) {
@@ -523,7 +524,7 @@ int main_samview(int argc, char *argv[])
             hts_itr_destroy(iter);
             if (result < -1) {
                 fprintf(stderr, "[main_samview] retrieval of region \"%s\" failed due to truncated file or corrupt BAM index file\n", argv[i]);
-                ret = 1;
+                ret = EXIT_FAILURE;
                 break;
             }
         }
